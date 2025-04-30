@@ -57,7 +57,7 @@ const DEFAULT_WORKFLOW = {
     {
       id: 'step5',
       name: 'Fill in the Blanks Rubric',
-      prompt: 'For this fill in the blanks question: {question}\nGenerate exactly three criteria:\n1. State the correct answer for each blank\n2. All blanks are filled\n3. Correct spelling and grammar\nTotal word limit: 15 words.\nOutput only the numbered criteria.',
+      prompt: 'For this fill in the blanks question: {question}\nFirst, count the number of blanks in the question.\nThen, generate criteria as follows:\n1. State the correct answer for each blank in order\n2. If there are multiple blanks, add "All blanks must be filled"\n3. If spelling/grammar is critical, add "Correct spelling and grammar"\nKeep each criterion under 8 words. Total word limit: 20 words.\nOutput only the numbered criteria.',
       conditions: [
         {
           id: 'condition6',
