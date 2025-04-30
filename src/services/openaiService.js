@@ -1,14 +1,10 @@
 import OpenAI from 'openai';
 
-// Initialize the OpenAI client with the API key from localStorage
+// Initialize the OpenAI client with the API key hardcoded for internal testing
 const getOpenAIClient = () => {
-  const apiKey = localStorage.getItem('openai_api_key');
-  if (!apiKey) {
-    throw new Error('OpenAI API key not found. Please enter your API key to use this feature.');
-  }
   return new OpenAI({
-    apiKey: apiKey,
-    dangerouslyAllowBrowser: true // Only for development, in production this should be handled by a backend
+    apiKey: "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",
+    dangerouslyAllowBrowser: true // Only for development/testing
   });
 };
 
