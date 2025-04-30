@@ -1,0 +1,383 @@
+// Question type enumeration
+export const QuestionType = {
+  SHORT_ANSWER: 'short_answer',
+  LONG_ANSWER: 'long_answer',
+  MULTIPLE_CHOICE: 'multiple_choice',
+  TRUE_FALSE: 'true_false',
+  FILL_IN_THE_BLANKS: 'fill_in_the_blanks',
+  MATCHING: 'matching',
+  ORDERING: 'ordering'
+};
+
+// Validate if a string matches a valid question type
+const isValidQuestionType = (type) => {
+  return Object.values(QuestionType).includes(type);
+};
+
+// Function to detect question type from text
+export const detectQuestionType = async (text) => {
+  const prompt = `Analyze the following question and determine its type. 
+  Return ONLY the type in this exact format: TYPE: [type]
+  Valid types are: ${Object.values(QuestionType).join(', ')}
+  
+  Question: ${text}`;
+
+  console.log('Detecting question type with prompt:', prompt);
+  const result = await generateRubricWithText(prompt);
+  console.log('Raw detection result:', result);
+
+  const typeLine = result.split('\n').find(line => line.startsWith('TYPE:'));
+  if (typeLine) {
+    const extractedType = typeLine.replace('TYPE:', '').trim().toLowerCase();
+    console.log('Extracted type:', extractedType);
+    
+    // Try to match with our enum values
+    const matchingType = Object.entries(QuestionType).find(([_, value]) => {
+      const normalizedExtracted = extractedType.replace(/\s+/g, '_').replace(/[^a-z_]/g, '');
+      const normalizedValue = value.toLowerCase();
+      const matches = normalizedExtracted === normalizedValue;
+      console.log('Comparing:', { 
+        normalizedExtracted, 
+        normalizedValue, 
+        matches 
+      });
+      return matches;
+    });
+
+    if (matchingType) {
+      console.log('Found matching type:', matchingType[1]);
+      return matchingType[1]; // Return the exact enum value
+    } else {
+      console.log('No matching type found in enum:', QuestionType);
+    }
+  }
+  
+  console.log('Defaulting to short_answer');
+  return QuestionType.SHORT_ANSWER;
+};
+
+// This data structure will work for both simple and visual versions
+export const createWorkflow = () => ({
+  id: Date.now().toString(),
+  name: 'New Workflow',
+  steps: [],
+  connections: []
+});
+
+export const createStep = (type, prompt, model = 'gpt-4o', name = 'New Step') => ({
+  id: Date.now().toString(),
+  type,
+  name,
+  prompt,
+  model,
+  conditions: []
+});
+
+export const createCondition = (outputKey, operator, value, targetStepId) => ({
+  id: Date.now().toString(),
+  outputKey,
+  operator,
+  value,
+  targetStepId
+});
+
+// Helper function to evaluate conditions
+export const evaluateCondition = (condition, result) => {
+  const { outputKey, operator, value } = condition;
+  console.log('Raw condition evaluation input:', { condition, result });
+  
+  // Special case for 'exists' operator
+  if (operator === 'exists') {
+    return true; // Always true, used for terminal conditions
+  }
+
+  // Handle both direct result and parsed result structures
+  let typeToCheck = null;
+  
+  if (typeof result === 'object') {
+    // If we have a parsed result with type field
+    if (result.type) {
+      typeToCheck = result.type;
+    }
+    // If we have a result.result field (structured output)
+    else if (result.result) {
+      let cleanResult = result.result;
+      
+      // If the result is a JSON-style string, remove the outer quotes
+      if (typeof cleanResult === 'string') {
+        // Remove outer quotes if present
+        if (cleanResult.startsWith('"') && cleanResult.endsWith('"')) {
+          cleanResult = cleanResult.slice(1, -1);
+          console.log('Removed outer quotes:', cleanResult);
+        }
+        
+        // Remove triple backticks
+        cleanResult = cleanResult.replace(/```/g, '').trim();
+        console.log('Removed backticks:', cleanResult);
+      }
+      
+      const lines = cleanResult.split('\n').map(line => line.trim()).filter(line => line);
+      console.log('Split and cleaned lines:', lines);
+      
+      const typeLine = lines.find(l => l.startsWith('TYPE:'));
+      if (typeLine) {
+        typeToCheck = typeLine.replace('TYPE:', '').trim().toLowerCase();
+      }
+    }
+  }
+
+  // If we found a type to check
+  if (typeToCheck) {
+    console.log('Type to check:', typeToCheck);
+    
+    // Validate the type
+    if (!isValidQuestionType(typeToCheck)) {
+      console.log('Invalid question type detected:', typeToCheck);
+      return false;
+    }
+
+    // For debugging, log the exact string comparison
+    console.log('Comparison details:', {
+      extractedType: typeToCheck,
+      expectedValue: value,
+      operator,
+      typeLength: typeToCheck.length,
+      valueLength: value.length,
+      typeCharCodes: [...typeToCheck].map(c => c.charCodeAt(0)),
+      valueCharCodes: [...value].map(c => c.charCodeAt(0))
+    });
+
+    // Only allow exact matching for question types
+    if (operator === 'equals') {
+      const exactMatch = typeToCheck === value.toLowerCase();
+      console.log('Exact match result:', exactMatch);
+      return exactMatch;
+    }
+    
+    console.log('Invalid operator for question type comparison:', operator);
+    return false;
+  }
+
+  console.log('Falling back to regular condition evaluation');
+  const actualValue = result[outputKey] || '';
+  console.log('Regular evaluation:', { actualValue, operator, value });
+
+  switch (operator) {
+    case 'equals':
+      return actualValue === value;
+    case 'contains':
+      return actualValue.toLowerCase().includes(value.toLowerCase());
+    case 'greaterThan':
+      return parseFloat(actualValue) > parseFloat(value);
+    case 'lessThan':
+      return parseFloat(actualValue) < parseFloat(value);
+    default:
+      return false;
+  }
+};
+
+// Function to get the next step based on conditions
+export const getNextStep = (currentStep, aiOutput) => {
+  console.log('=== Workflow Routing Debug ===');
+  console.log('Current Step:', {
+    id: currentStep.id,
+    name: currentStep.name,
+    conditions: currentStep.conditions
+  });
+  
+  console.log('AI Output:', aiOutput);
+  
+  for (const condition of currentStep.conditions) {
+    console.log('\nEvaluating condition:', {
+      outputKey: condition.outputKey,
+      operator: condition.operator,
+      value: condition.value,
+      targetStepId: condition.targetStepId
+    });
+    
+    const matches = evaluateCondition(condition, aiOutput);
+    console.log('Condition evaluation result:', matches);
+    
+    if (matches) {
+      console.log('✅ MATCH FOUND - Routing to step:', condition.targetStepId);
+      return condition.targetStepId;
+    } else {
+      console.log('❌ No match for this condition');
+    }
+  }
+  
+  console.log('=== No matching conditions found, using default next step ===');
+  return null; // No matching condition found
+};
+
+import { generateRubric, generateRubricWithText } from './openaiService';
+
+const parseResult = (result) => {
+  try {
+    // Try to parse as JSON first
+    return JSON.parse(result);
+  } catch (e) {
+    // If not JSON, try to extract key-value pairs
+    const lines = result.split('\n');
+    const parsed = {};
+    lines.forEach(line => {
+      const [key, ...values] = line.split(':').map(s => s.trim());
+      if (key && values.length > 0) {
+        parsed[key.toLowerCase()] = values.join(':').trim();
+      }
+    });
+    return parsed;
+  }
+};
+
+export const executeWorkflow = async (workflow, imageOrText, onProgress) => {
+  console.log('=== Starting Workflow Execution ===');
+  console.log('Workflow Configuration:', {
+    name: workflow.name,
+    totalSteps: workflow.steps.length,
+    steps: workflow.steps.map(s => ({ 
+      id: s.id, 
+      name: s.name,
+      conditions: s.conditions.map(c => ({
+        outputKey: c.outputKey,
+        operator: c.operator,
+        value: c.value
+      }))
+    }))
+  });
+  
+  if (!workflow || !workflow.steps || workflow.steps.length === 0) {
+    throw new Error('Invalid workflow: no steps defined');
+  }
+
+  let results = [];
+  let questionText = '';
+  let questionType = '';
+
+  try {
+    // Handle both image upload and existing question text
+    if (typeof imageOrText === 'string') {
+      questionText = imageOrText;
+      console.log('Using existing question text:', questionText);
+    } else if (imageOrText instanceof File || imageOrText instanceof Blob) {
+      // If we're passed a file/blob, extract question from image
+      console.log('=== Detecting Question from Image ===');
+      const initialResult = await generateRubric(imageOrText, 'Extract the question from this image.');
+      console.log('Initial extraction result:', initialResult);
+      
+      if (typeof initialResult !== 'string') {
+        console.error('Invalid response type:', typeof initialResult);
+        throw new Error('Invalid response from question extraction');
+      }
+
+      // Extract question text
+      const lines = initialResult.split('\n');
+      console.log('Split lines:', lines);
+      
+      const questionLine = lines.find(line => line.startsWith('QUESTION:'));
+      console.log('Found question line:', questionLine);
+      
+      if (!questionLine) {
+        console.error('No QUESTION: prefix found in:', initialResult);
+        throw new Error('Could not extract question from image');
+      }
+      
+      questionText = questionLine.replace('QUESTION:', '').trim();
+      console.log('Extracted question text:', questionText);
+    } else {
+      throw new Error('Please provide either an image or question text');
+    }
+    
+    if (!questionText) {
+      throw new Error('Question text is empty');
+    }
+
+    // Detect question type
+    try {
+      questionType = await detectQuestionType(questionText);
+      console.log('Detected question type:', questionType);
+    } catch (error) {
+      console.error('Error detecting question type:', error);
+      questionType = QuestionType.SHORT_ANSWER;
+      console.log('Falling back to default type:', questionType);
+    }
+
+    // Format and add the type detection result
+    const typeDetectionResult = `Step "Question Type Detection":\nQUESTION: ${questionText}\nTYPE: ${questionType}`;
+    results.push(typeDetectionResult);
+
+    // Find the matching step for the detected question type
+    console.log('Looking for step matching type:', questionType);
+    console.log('Available steps:', workflow.steps.map(s => ({
+      name: s.name,
+      conditions: s.conditions.map(c => `${c.outputKey} ${c.operator} ${c.value}`)
+    })));
+
+    const matchingStep = workflow.steps.find(step => {
+      const matches = step.conditions.some(condition => {
+        const matches = condition.outputKey === 'type' && 
+          condition.operator === 'equals' && 
+          condition.value.toLowerCase() === questionType.toLowerCase();
+        console.log(`Checking condition in step "${step.name}":`, {
+          condition,
+          questionType,
+          matches
+        });
+        return matches;
+      });
+      console.log(`Step "${step.name}" matches:`, matches);
+      return matches;
+    });
+
+    if (!matchingStep) {
+      throw new Error(`No matching step found for question type: ${questionType}`);
+    }
+
+    console.log('Selected matching step:', {
+      name: matchingStep.name,
+      conditions: matchingStep.conditions
+    });
+
+    console.log(`\n=== Executing Matching Step: ${matchingStep.name} ===`);
+    
+    try {
+      if (onProgress) {
+        onProgress(0, 'Starting...');
+      }
+
+      let promptToUse = matchingStep.prompt
+        .replace(/\{question\}/g, questionText)
+        .replace(/\{type\}/g, questionType);
+
+      const result = await generateRubricWithText(promptToUse);
+      
+      if (!result || typeof result !== 'string') {
+        throw new Error('Invalid response from AI service');
+      }
+
+      console.log('Step Result:', result);
+      
+      // Add the step result
+      const stepResult = `Step "${matchingStep.name}":\n${result}`;
+      results.push(stepResult);
+      
+      if (onProgress) {
+        onProgress(1, result);
+      }
+
+    } catch (error) {
+      console.error(`Error executing step ${matchingStep.id}:`, error);
+      results.push(`Step "${matchingStep.name}":\nError - ${error.message}`);
+      
+      if (onProgress) {
+        onProgress(1, `Error: ${error.message}`);
+      }
+    }
+
+    console.log('\n=== Workflow Execution Complete ===');
+    return results.join('\n\n');
+  } catch (error) {
+    console.error('Workflow execution failed:', error);
+    throw error;
+  }
+}; 
