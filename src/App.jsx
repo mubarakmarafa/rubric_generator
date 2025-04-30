@@ -57,7 +57,7 @@ const DEFAULT_WORKFLOW = {
     {
       id: 'step5',
       name: 'Fill in the Blanks Rubric',
-      prompt: 'For this fill in the blanks question: {question}\nFirst, count the number of blanks in the question.\nThen, generate criteria as follows:\n1. State the correct answer for each blank in order\n2. If there are multiple blanks, add "All blanks must be filled"\n3. If spelling/grammar is critical, add "Correct spelling and grammar"\nKeep each criterion under 8 words. Total word limit: 20 words.\nOutput only the numbered criteria.',
+      prompt: 'For this fill in the blanks question: {question}\nGenerate exactly three criteria:\n1. State the correct answer for each blank\n2. All blanks are filled\n3. Correct spelling and grammar\nTotal word limit: 15 words.\nOutput only the numbered criteria.',
       conditions: [
         {
           id: 'condition6',
@@ -122,12 +122,28 @@ function App() {
   const [showWorkflowEditor, setShowWorkflowEditor] = useState(false);
   const [showWorkflowManager, setShowWorkflowManager] = useState(false);
   const [executionProgress, setExecutionProgress] = useState(null);
+  const [apiKey, setApiKey] = useState(() => {
+    // Try to restore API key from localStorage
+    return localStorage.getItem('openai_api_key') || '';
+  });
+  const [showApiKeyPrompt, setShowApiKeyPrompt] = useState(!localStorage.getItem('openai_api_key'));
   const [detectedQuestion, setDetectedQuestion] = useState(() => {
     // Try to restore from localStorage
     const saved = localStorage.getItem('detectedQuestion');
     return saved ? JSON.parse(saved) : null;
   });
   const [isDetectingQuestion, setIsDetectingQuestion] = useState(false);
+
+  // Save API key to localStorage when it changes
+  useEffect(() => {
+    if (apiKey) {
+      localStorage.setItem('openai_api_key', apiKey);
+      setShowApiKeyPrompt(false);
+    } else {
+      localStorage.removeItem('openai_api_key');
+      setShowApiKeyPrompt(true);
+    }
+  }, [apiKey]);
 
   // Load workflows from local storage on component mount
   useEffect(() => {
@@ -322,6 +338,20 @@ function App() {
     }
   };
 
+  const handleApiKeySubmit = (event) => {
+    event.preventDefault();
+    const key = event.target.apiKey.value.trim();
+    if (key) {
+      setApiKey(key);
+    }
+  };
+
+  const handleApiKeyRemove = () => {
+    setApiKey('');
+    localStorage.removeItem('openai_api_key');
+    setShowApiKeyPrompt(true);
+  };
+
   return (
     <div className="App">
       <header className="App-header">
@@ -329,88 +359,142 @@ function App() {
       </header>
       
       <main>
-        <ImageUpload onImageUpload={handleImageUpload} />
-        
-        {isDetectingQuestion && (
-          <div style={{ marginTop: '1rem', color: '#888' }}>
-            <span className="spinner" style={{ marginRight: 8 }}>⏳</span>
-            Detecting question and type...
+        {showApiKeyPrompt ? (
+          <div className="api-key-prompt">
+            <h2>Welcome to the Worksheet Rubric Generator!</h2>
+            <p>To use this tool, you'll need an OpenAI API key with access to GPT-4 Vision.</p>
+            <form onSubmit={handleApiKeySubmit}>
+              <input
+                type="password"
+                name="apiKey"
+                placeholder="Enter your OpenAI API key"
+                required
+                style={{
+                  padding: '0.5rem',
+                  width: '300px',
+                  marginRight: '0.5rem'
+                }}
+              />
+              <button
+                type="submit"
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Save API Key
+              </button>
+            </form>
+            <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '1rem' }}>
+              Your API key is stored securely in your browser's local storage and is never sent to our servers.
+            </p>
           </div>
-        )}
-        {detectedQuestion && !isDetectingQuestion && (
-          <div className="detected-question-box">
-            <h3>Detected Question</h3>
-            <div className="question-details">
-              <div className="question-text">
-                <strong>Question:</strong> {detectedQuestion.text}
-              </div>
-              {detectedQuestion.type && (
-                <div className="question-type">
-                  <strong>Type:</strong> 
-                  <span className={`type-badge ${detectedQuestion.type}`}>
-                    {detectedQuestion.type.replace(/_/g, ' ')}
-                  </span>
-                </div>
-              )}
-              {detectedQuestion.format && (
-                <div className="question-format">
-                  <strong>Format:</strong> {detectedQuestion.format}
-                </div>
-              )}
+        ) : (
+          <>
+            <div style={{ marginBottom: '1rem', textAlign: 'right' }}>
+              <button
+                onClick={handleApiKeyRemove}
+                style={{
+                  padding: '0.25rem 0.5rem',
+                  backgroundColor: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem'
+                }}
+              >
+                Remove API Key
+              </button>
             </div>
-          </div>
-        )}
-        
-        <PromptInput
-          onPromptSubmit={handlePromptSubmit}
-          workflows={workflows}
-          currentWorkflow={currentWorkflow}
-          onWorkflowSelect={handleWorkflowSelect}
-        />
-        
-        {isLoading && (
-          <div style={{ marginTop: '1rem' }}>
-            {executionProgress ? (
-              <div>
-                <p>Step {executionProgress.currentStep} of {executionProgress.totalSteps}</p>
-                <p>{executionProgress.result}</p>
+            <ImageUpload onImageUpload={handleImageUpload} />
+            
+            {isDetectingQuestion && (
+              <div style={{ marginTop: '1rem', color: '#888' }}>
+                <span className="spinner" style={{ marginRight: 8 }}>⏳</span>
+                Detecting question and type...
               </div>
-            ) : (
-              <p>Generating rubric...</p>
             )}
-          </div>
-        )}
-        
-        {rubric && (
-          <div style={{ marginTop: '1rem', whiteSpace: 'pre-wrap' }}>
-            <h2>Generated Rubric</h2>
-            <p>{rubric}</p>
-          </div>
-        )}
-        
-        <div style={{ marginTop: '2rem' }}>
-          <button
-            onClick={() => setShowWorkflowManager(!showWorkflowManager)}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: '#007bff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            {showWorkflowManager ? 'Hide Workflows' : 'Manage Workflows'}
-          </button>
-        </div>
-        
-        {showWorkflowManager && (
-          <WorkflowManager
-            workflows={workflows}
-            onWorkflowSelect={handleWorkflowSelect}
-            onWorkflowDelete={handleWorkflowDelete}
-            onWorkflowEdit={handleWorkflowEdit}
-          />
+            {detectedQuestion && !isDetectingQuestion && (
+              <div className="detected-question-box">
+                <h3>Detected Question</h3>
+                <div className="question-details">
+                  <div className="question-text">
+                    <strong>Question:</strong> {detectedQuestion.text}
+                  </div>
+                  {detectedQuestion.type && (
+                    <div className="question-type">
+                      <strong>Type:</strong> 
+                      <span className={`type-badge ${detectedQuestion.type}`}>
+                        {detectedQuestion.type.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                  )}
+                  {detectedQuestion.format && (
+                    <div className="question-format">
+                      <strong>Format:</strong> {detectedQuestion.format}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            <PromptInput
+              onPromptSubmit={handlePromptSubmit}
+              workflows={workflows}
+              currentWorkflow={currentWorkflow}
+              onWorkflowSelect={handleWorkflowSelect}
+            />
+            
+            {isLoading && (
+              <div style={{ marginTop: '1rem' }}>
+                {executionProgress ? (
+                  <div>
+                    <p>Step {executionProgress.currentStep} of {executionProgress.totalSteps}</p>
+                    <p>{executionProgress.result}</p>
+                  </div>
+                ) : (
+                  <p>Generating rubric...</p>
+                )}
+              </div>
+            )}
+            
+            {rubric && (
+              <div style={{ marginTop: '1rem', whiteSpace: 'pre-wrap' }}>
+                <h2>Generated Rubric</h2>
+                <p>{rubric}</p>
+              </div>
+            )}
+            
+            <div style={{ marginTop: '2rem' }}>
+              <button
+                onClick={() => setShowWorkflowManager(!showWorkflowManager)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                {showWorkflowManager ? 'Hide Workflows' : 'Manage Workflows'}
+              </button>
+            </div>
+            
+            {showWorkflowManager && (
+              <WorkflowManager
+                workflows={workflows}
+                onWorkflowSelect={handleWorkflowSelect}
+                onWorkflowDelete={handleWorkflowDelete}
+                onWorkflowEdit={handleWorkflowEdit}
+              />
+            )}
+          </>
         )}
       </main>
     </div>

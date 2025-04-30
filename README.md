@@ -1,6 +1,6 @@
 # Worksheet Rubric Generator
 
-An AI-powered tool for teachers that automatically generates rubrics for worksheet questions. Upload an image of a question, and get an appropriate grading rubric based on the question type.
+An AI-powered tool that automatically generates rubrics for worksheet questions. Upload an image of a question, and get an appropriate grading rubric based on the question type.
 
 ## Features
 
