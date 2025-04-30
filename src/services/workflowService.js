@@ -230,7 +230,7 @@ const parseResult = (result) => {
   }
 };
 
-export const executeWorkflow = async (workflow, imageOrText, onProgress) => {
+export const executeWorkflow = async (workflow, questionData, onProgress) => {
   console.log('=== Starting Workflow Execution ===');
   console.log('Workflow Configuration:', {
     name: workflow.name,
@@ -255,51 +255,20 @@ export const executeWorkflow = async (workflow, imageOrText, onProgress) => {
   let questionType = '';
 
   try {
-    // Handle both image upload and existing question text
-    if (typeof imageOrText === 'string') {
-      questionText = imageOrText;
+    // Handle both image upload and existing question data
+    if (typeof questionData === 'string') {
+      questionText = questionData;
       console.log('Using existing question text:', questionText);
-    } else if (imageOrText instanceof File || imageOrText instanceof Blob) {
-      // If we're passed a file/blob, extract question from image
-      console.log('=== Detecting Question from Image ===');
-      const initialResult = await generateRubric(imageOrText, 'Extract the question from this image.');
-      console.log('Initial extraction result:', initialResult);
-      
-      if (typeof initialResult !== 'string') {
-        console.error('Invalid response type:', typeof initialResult);
-        throw new Error('Invalid response from question extraction');
-      }
-
-      // Extract question text
-      const lines = initialResult.split('\n');
-      console.log('Split lines:', lines);
-      
-      const questionLine = lines.find(line => line.startsWith('QUESTION:'));
-      console.log('Found question line:', questionLine);
-      
-      if (!questionLine) {
-        console.error('No QUESTION: prefix found in:', initialResult);
-        throw new Error('Could not extract question from image');
-      }
-      
-      questionText = questionLine.replace('QUESTION:', '').trim();
-      console.log('Extracted question text:', questionText);
+    } else if (typeof questionData === 'object') {
+      questionText = questionData.text;
+      questionType = questionData.type;
+      console.log('Using provided question data:', { questionText, questionType });
     } else {
-      throw new Error('Please provide either an image or question text');
+      throw new Error('Invalid question data provided');
     }
     
     if (!questionText) {
       throw new Error('Question text is empty');
-    }
-
-    // Detect question type
-    try {
-      questionType = await detectQuestionType(questionText);
-      console.log('Detected question type:', questionType);
-    } catch (error) {
-      console.error('Error detecting question type:', error);
-      questionType = QuestionType.SHORT_ANSWER;
-      console.log('Falling back to default type:', questionType);
     }
 
     // Format and add the type detection result
@@ -374,10 +343,9 @@ export const executeWorkflow = async (workflow, imageOrText, onProgress) => {
       }
     }
 
-    console.log('\n=== Workflow Execution Complete ===');
     return results.join('\n\n');
   } catch (error) {
-    console.error('Workflow execution failed:', error);
+    console.error('Error in workflow execution:', error);
     throw error;
   }
 }; 

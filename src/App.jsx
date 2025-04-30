@@ -214,7 +214,11 @@ function App() {
         console.log('Starting workflow execution:', currentWorkflow);
         const results = await executeWorkflow(
           currentWorkflow, 
-          detectedQuestion?.text || image,
+          {
+            text: detectedQuestion?.text || '',
+            type: detectedQuestion?.type || 'short_answer',
+            format: detectedQuestion?.format || ''
+          },
           (stepIndex, result) => {
             console.log('Step progress:', { stepIndex, result });
             setExecutionProgress({
