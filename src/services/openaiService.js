@@ -1,10 +1,16 @@
 import OpenAI from 'openai';
 
-// Initialize the OpenAI client
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true // Only for development, in production this should be handled by a backend
-});
+// Initialize the OpenAI client with the API key from localStorage
+const getOpenAIClient = () => {
+  const apiKey = localStorage.getItem('openai_api_key');
+  if (!apiKey) {
+    throw new Error('OpenAI API key not found. Please enter your API key to use this feature.');
+  }
+  return new OpenAI({
+    apiKey: apiKey,
+    dangerouslyAllowBrowser: true // Only for development, in production this should be handled by a backend
+  });
+};
 
 const VALID_QUESTION_TYPES = [
   'multiple_choice',
@@ -60,6 +66,7 @@ export const generateRubric = async (imageData, prompt) => {
       throw new Error('Invalid image data format');
     }
 
+    const openai = getOpenAIClient();
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -146,6 +153,9 @@ Do not include any other text or explanations.`
     };
   } catch (error) {
     console.error('Error calling OpenAI API:', error);
+    if (error.message.includes('API key not found')) {
+      throw error; // Re-throw API key errors
+    }
     if (error.code === 'invalid_api_key') {
       throw new Error('Invalid API key. Please check your OpenAI API key configuration.');
     } else if (error.code === 'insufficient_quota') {
@@ -159,6 +169,7 @@ Do not include any other text or explanations.`
 
 export const generateRubricWithText = async (textPrompt) => {
   try {
+    const openai = getOpenAIClient();
     const response = await openai.chat.completions.create({
       model: "gpt-4-turbo-preview",
       messages: [
@@ -179,6 +190,9 @@ export const generateRubricWithText = async (textPrompt) => {
     return response.choices[0].message.content;
   } catch (error) {
     console.error('Error calling OpenAI API:', error);
+    if (error.message.includes('API key not found')) {
+      throw error; // Re-throw API key errors
+    }
     if (error.code === 'invalid_api_key') {
       throw new Error('Invalid API key. Please check your OpenAI API key configuration.');
     } else if (error.code === 'insufficient_quota') {
