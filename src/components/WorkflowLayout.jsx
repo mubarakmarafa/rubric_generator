@@ -3,6 +3,7 @@ import './WorkflowLayout.css';
 import ImageUpload from './ImageUpload';
 import { generateRubric } from '../services/openaiService';
 import { executeWorkflow, detectQuestionType } from '../services/workflowService';
+import { FaTrash } from 'react-icons/fa';
 
 const DEFAULT_WORKFLOWS = [
   {
@@ -178,8 +179,8 @@ export default function WorkflowLayout() {
       id: newId,
       name: `Workflow ${newId}`,
       steps: [
-        { id: 1, title: 'Step 1', prompt: '' },
-        { id: 2, title: 'Step 2', prompt: '' }
+        { id: 1, title: 'Step 1', prompt: '', conditions: [] },
+        { id: 2, title: 'Step 2', prompt: '', conditions: [] }
       ]
     };
     setWorkflows([...workflows, newWorkflow]);
@@ -358,9 +359,15 @@ export default function WorkflowLayout() {
 
     try {
       if (selectedWorkflow) {
-        console.log('Starting workflow execution:', selectedWorkflow);
+        // Sync prompts before running workflow
+        const updatedSteps = selectedWorkflow.steps.map((step, idx) => ({
+          ...step,
+          prompt: stepPromptInputs[idx]
+        }));
+        const updatedWorkflow = { ...selectedWorkflow, steps: updatedSteps };
+        console.log('Starting workflow execution:', updatedWorkflow);
         const results = await executeWorkflow(
-          selectedWorkflow, 
+          updatedWorkflow, 
           {
             text: detectedQuestion?.text || '',
             type: detectedQuestion?.type || 'short_answer',
@@ -377,7 +384,7 @@ export default function WorkflowLayout() {
             
             setExecutionProgress({
               currentStep: stepIndex + 1,
-              totalSteps: selectedWorkflow.steps.length,
+              totalSteps: updatedWorkflow.steps.length,
               result: rubricOnly
             });
           }
@@ -414,14 +421,20 @@ export default function WorkflowLayout() {
     setExecutionProgress(null);
 
     try {
+      // Sync prompts before running workflow
+      const updatedSteps = selectedWorkflow.steps.map((step, idx) => ({
+        ...step,
+        prompt: stepPromptInputs[idx]
+      }));
+      const updatedWorkflow = { ...selectedWorkflow, steps: updatedSteps };
       console.log('Executing workflow with question type:', detectedQuestion?.type);
-      console.log('Available steps:', selectedWorkflow.steps.map(s => ({
+      console.log('Available steps:', updatedWorkflow.steps.map(s => ({
         title: s.title,
         conditions: s.conditions.map(c => `${c.outputKey} ${c.operator} ${c.value}`)
       })));
 
       const result = await executeWorkflow(
-        selectedWorkflow,
+        updatedWorkflow,
         {
           text: detectedQuestion?.text || '',
           type: detectedQuestion?.type?.toLowerCase().replace(/\s+/g, '_') || 'short_answer',
@@ -430,7 +443,7 @@ export default function WorkflowLayout() {
         (stepIndex, result) => {
           setExecutionProgress({
             currentStep: stepIndex + 1,
-            totalSteps: selectedWorkflow.steps.length,
+            totalSteps: updatedWorkflow.steps.length,
             result: result
           });
         }
@@ -456,6 +469,13 @@ export default function WorkflowLayout() {
     setApiKey('');
     localStorage.removeItem('openai_api_key');
     setShowApiKeyPrompt(true);
+  };
+
+  const handleDeleteStep = (idx) => {
+    const updatedSteps = selectedWorkflow.steps.filter((_, i) => i !== idx);
+    const updatedPrompts = stepPromptInputs.filter((_, i) => i !== idx);
+    setSelectedWorkflow({ ...selectedWorkflow, steps: updatedSteps });
+    setStepPromptInputs(updatedPrompts);
   };
 
   return (
@@ -601,23 +621,33 @@ export default function WorkflowLayout() {
               const isExpanded = expandedStepId === step.id;
               return (
                 <div className={`workflow-step step-card${isExpanded ? ' expanded' : ''}${editingPromptId === step.id ? ' expanded' : ''}`} key={step.id}>
-                  <div className="step-card-row">
+                  <div className="step-card-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     {/* Step name */}
-                    {editingStepId === step.id ? (
-                      <input
-                        className="step-title-input"
-                        value={stepTitleInput}
-                        onChange={handleStepTitleChange}
-                        onBlur={() => handleStepTitleBlur(idx)}
-                        onKeyDown={e => handleStepTitleKeyDown(e, idx)}
-                        autoFocus
-                        maxLength={40}
-                      />
-                    ) : (
-                      <span className="step-title" onClick={() => handleStepTitleClick(step, idx)} tabIndex={0}>
-                        {step.title}
-                      </span>
-                    )}
+                    <div style={{ flex: 1 }}>
+                      {editingStepId === step.id ? (
+                        <input
+                          className="step-title-input"
+                          value={stepTitleInput}
+                          onChange={handleStepTitleChange}
+                          onBlur={() => handleStepTitleBlur(idx)}
+                          onKeyDown={e => handleStepTitleKeyDown(e, idx)}
+                          autoFocus
+                          maxLength={40}
+                        />
+                      ) : (
+                        <span className="step-title" onClick={() => handleStepTitleClick(step, idx)} tabIndex={0}>
+                          {step.title}
+                        </span>
+                      )}
+                    </div>
+                    {/* Delete icon */}
+                    <button
+                      onClick={() => handleDeleteStep(idx)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc3545', fontSize: '1.1rem', marginLeft: 8 }}
+                      title="Delete Step"
+                    >
+                      <FaTrash />
+                    </button>
                   </div>
                   <div className="step-card-main-row">
                     {/* Prompt textarea */}

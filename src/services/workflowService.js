@@ -270,68 +270,80 @@ export const executeWorkflow = async (workflow, questionData, onProgress) => {
       throw new Error('Question text is empty');
     }
 
-    // Find the matching step for the detected question type
-    console.log('Looking for step matching type:', questionType);
-    console.log('Available steps:', workflow.steps.map(s => ({
-      name: s.name,
-      conditions: s.conditions.map(c => `${c.outputKey} ${c.operator} ${c.value}`)
-    })));
+    // Check if any step has conditions
+    const anyStepHasConditions = workflow.steps.some(step => step.conditions && step.conditions.length > 0);
 
-    const matchingStep = workflow.steps.find(step => {
-      const matches = step.conditions.some(condition => {
-        const matches = condition.outputKey === 'type' && 
-          condition.operator === 'equals' && 
-          condition.value.toLowerCase() === questionType.toLowerCase();
-        console.log(`Checking condition in step "${step.name}":`, {
-          condition,
-          questionType,
-          matches
+    if (anyStepHasConditions) {
+      // Conditional routing mode (original logic)
+      // Find the matching step for the detected question type
+      const matchingStep = workflow.steps.find(step => {
+        return step.conditions && step.conditions.some(condition => {
+          return condition.outputKey === 'type' &&
+            condition.operator === 'equals' &&
+            condition.value.toLowerCase() === (questionType || '').toLowerCase();
         });
-        return matches;
       });
-      console.log(`Step "${step.name}" matches:`, matches);
-      return matches;
-    });
-
-    if (!matchingStep) {
-      throw new Error(`No matching step found for question type: ${questionType}`);
-    }
-
-    console.log('Selected matching step:', {
-      name: matchingStep.name,
-      conditions: matchingStep.conditions
-    });
-
-    console.log(`\n=== Executing Matching Step: ${matchingStep.name} ===`);
-    
-    try {
-      if (onProgress) {
-        onProgress(0, 'Starting...');
+      if (!matchingStep) {
+        throw new Error(`No matching step found for question type: ${questionType}`);
       }
-
       let promptToUse = matchingStep.prompt
         .replace(/\{question\}/g, questionText)
-        .replace(/\{type\}/g, questionType);
-
+        .replace(/\{type\}/g, questionType || '')
+        .replace(/\{previous\}/g, '');
+      if (onProgress) {
+        onProgress(0, `Running step: ${matchingStep.title || matchingStep.name}`);
+      }
       const result = await generateRubricWithText(promptToUse);
-      
       if (!result || typeof result !== 'string') {
         throw new Error('Invalid response from AI service');
       }
-
-      console.log('Step Result:', result);
-      
-      if (onProgress) {
-        onProgress(1, result);
-      }
-
       return result;
+    } else {
+      // Linear mode: run all steps in order
+      let results = [];
+      let stepIndex = 0;
+      let context = { text: questionText, type: questionType };
+      let currentStepIndex = 0;
+      let maxSteps = workflow.steps.length;
+      let visitedSteps = new Set();
 
-    } catch (error) {
-      console.error(`Error executing step ${matchingStep.id}:`, error);
-      throw error;
+      while (currentStepIndex < maxSteps) {
+        const step = workflow.steps[currentStepIndex];
+        if (!step) break;
+        if (visitedSteps.has(step.id)) break; // Prevent infinite loops
+        visitedSteps.add(step.id);
+
+        // Skip steps with empty or whitespace-only prompts
+        if (!step.prompt || !step.prompt.trim()) {
+          currentStepIndex++;
+          continue;
+        }
+
+        let promptToUse = step.prompt
+          .replace(/\{question\}/g, context.text)
+          .replace(/\{type\}/g, context.type || '')
+          .replace(/\{previous\}/g, context.previous || '');
+
+        console.log(`[Workflow] Step ${currentStepIndex + 1} prompt:`, promptToUse);
+        console.log(`[Workflow] Context:`, context);
+
+        if (onProgress) {
+          onProgress(currentStepIndex, `Running step: ${step.title || step.name}`);
+        }
+
+        const result = await generateRubricWithText(promptToUse);
+        if (!result || typeof result !== 'string') {
+          throw new Error('Invalid response from AI service');
+        }
+        results.push(result);
+
+        // Update context for next step
+        context = { ...context, text: result, previous: result };
+
+        currentStepIndex++;
+      }
+      return results.join('\n');
     }
-
   } catch (error) {
     console.error('Error in workflow execution:', error);
     throw error;
