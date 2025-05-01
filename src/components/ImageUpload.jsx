@@ -1,35 +1,32 @@
-import React, { useState } from 'react';
+import React, { useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
 
-const ImageUpload = ({ onImageUpload }) => {
-  const [image, setImage] = useState(null);
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const imageData = reader.result;
-        setImage(imageData);
-        onImageUpload(imageData);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      setImage(null);
-      onImageUpload(null);
+export default function ImageUpload({ onImageUpload }) {
+  const onDrop = useCallback(acceptedFiles => {
+    if (acceptedFiles.length > 0) {
+      onImageUpload(acceptedFiles[0]);
     }
-  };
+  }, [onImageUpload]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif']
+    },
+    maxFiles: 1
+  });
 
   return (
-    <div>
-      <h2>Upload Worksheet Question</h2>
-      <input type="file" accept="image/*" onChange={handleImageChange} />
-      {image && (
-        <div style={{ marginTop: '1rem' }}>
-          <img src={image} alt="Uploaded" style={{ maxWidth: '100%', maxHeight: 400 }} />
-        </div>
+    <div
+      {...getRootProps()}
+      className={`image-upload-dropzone ${isDragActive ? 'active' : ''}`}
+    >
+      <input {...getInputProps()} />
+      {isDragActive ? (
+        <p>Drop the image here...</p>
+      ) : (
+        <p>Drag & drop an image here, or click to select</p>
       )}
     </div>
   );
-};
-
-export default ImageUpload; 
+} 
