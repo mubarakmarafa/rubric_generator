@@ -8,7 +8,7 @@ export default function ImageUpload({ onImageUpload }) {
     }
   }, [onImageUpload]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, acceptedFiles } = useDropzone({
     onDrop,
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif']
@@ -16,13 +16,22 @@ export default function ImageUpload({ onImageUpload }) {
     maxFiles: 1
   });
 
+  const previewUrl = acceptedFiles[0] ? URL.createObjectURL(acceptedFiles[0]) : null;
+
   return (
     <div
       {...getRootProps()}
-      className={`image-upload-dropzone ${isDragActive ? 'active' : ''}`}
+      className={`image-upload-dropzone ${isDragActive ? 'active' : ''} ${previewUrl ? 'has-image' : ''}`}
     >
       <input {...getInputProps()} />
-      {isDragActive ? (
+      {previewUrl ? (
+        <div className="image-preview">
+          <img src={previewUrl} alt="Uploaded question" />
+          <div className="image-overlay">
+            <p>Click or drag to replace image</p>
+          </div>
+        </div>
+      ) : isDragActive ? (
         <p>Drop the image here...</p>
       ) : (
         <p>Drag & drop an image here, or click to select</p>

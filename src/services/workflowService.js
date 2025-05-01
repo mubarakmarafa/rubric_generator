@@ -250,7 +250,6 @@ export const executeWorkflow = async (workflow, questionData, onProgress) => {
     throw new Error('Invalid workflow: no steps defined');
   }
 
-  let results = [];
   let questionText = '';
   let questionType = '';
 
@@ -270,10 +269,6 @@ export const executeWorkflow = async (workflow, questionData, onProgress) => {
     if (!questionText) {
       throw new Error('Question text is empty');
     }
-
-    // Format and add the type detection result
-    const typeDetectionResult = `Step "Question Type Detection":\nQUESTION: ${questionText}\nTYPE: ${questionType}`;
-    results.push(typeDetectionResult);
 
     // Find the matching step for the detected question type
     console.log('Looking for step matching type:', questionType);
@@ -326,24 +321,17 @@ export const executeWorkflow = async (workflow, questionData, onProgress) => {
 
       console.log('Step Result:', result);
       
-      // Add the step result
-      const stepResult = `Step "${matchingStep.name}":\n${result}`;
-      results.push(stepResult);
-      
       if (onProgress) {
         onProgress(1, result);
       }
 
+      return result;
+
     } catch (error) {
       console.error(`Error executing step ${matchingStep.id}:`, error);
-      results.push(`Step "${matchingStep.name}":\nError - ${error.message}`);
-      
-      if (onProgress) {
-        onProgress(1, `Error: ${error.message}`);
-      }
+      throw error;
     }
 
-    return results.join('\n\n');
   } catch (error) {
     console.error('Error in workflow execution:', error);
     throw error;
