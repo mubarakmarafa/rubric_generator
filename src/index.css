@@ -24,10 +24,26 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+}
+
+/* Desktop only centering */
+@media (min-width: 769px) {
+  body {
+    display: flex;
+    place-items: center;
+  }
+}
+
+/* Mobile - allow natural document flow and scrolling */
+@media (max-width: 768px) {
+  body {
+    display: block;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 h1 {

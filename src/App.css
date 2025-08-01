@@ -5,6 +5,28 @@
   text-align: center;
 }
 
+@media (max-width: 768px) {
+  #root {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    text-align: left;
+  }
+}
+
+.app-container {
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    width: 100%;
+    height: auto;
+    min-height: 100vh;
+  }
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;
