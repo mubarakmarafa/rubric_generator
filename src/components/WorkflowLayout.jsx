@@ -3,7 +3,7 @@ import './WorkflowLayout.css';
 import ImageUpload from './ImageUpload';
 import { generateRubric } from '../services/openaiService';
 import { executeWorkflow, detectQuestionType } from '../services/workflowService';
-import { FaTrash } from 'react-icons/fa';
+import { FaTrash, FaBars, FaTimes } from 'react-icons/fa';
 
 const DEFAULT_WORKFLOWS = [
   {
@@ -76,6 +76,10 @@ export default function WorkflowLayout() {
   });
   const [isKeySet, setIsKeySet] = useState(!!localStorage.getItem('openai_api_key'));
   const [showApiKeyPrompt, setShowApiKeyPrompt] = useState(!localStorage.getItem('openai_api_key'));
+
+  // Mobile navigation state
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
 
   const [image, setImage] = useState(null);
   const [rubric, setRubric] = useState(null);
@@ -471,6 +475,36 @@ export default function WorkflowLayout() {
     setShowApiKeyPrompt(true);
   };
 
+  // Mobile navigation handlers
+  const toggleLeftSidebar = () => {
+    setLeftSidebarOpen(!leftSidebarOpen);
+    if (rightSidebarOpen) setRightSidebarOpen(false);
+  };
+
+  const toggleRightSidebar = () => {
+    setRightSidebarOpen(!rightSidebarOpen);
+    if (leftSidebarOpen) setLeftSidebarOpen(false);
+  };
+
+  const closeSidebars = () => {
+    setLeftSidebarOpen(false);
+    setRightSidebarOpen(false);
+  };
+
+  // Close sidebars when clicking outside on mobile
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (window.innerWidth <= 768 && (leftSidebarOpen || rightSidebarOpen)) {
+        if (event.target.classList.contains('mobile-overlay')) {
+          closeSidebars();
+        }
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [leftSidebarOpen, rightSidebarOpen]);
+
   const handleDeleteStep = (idx) => {
     const updatedSteps = selectedWorkflow.steps.filter((_, i) => i !== idx);
     const updatedPrompts = stepPromptInputs.filter((_, i) => i !== idx);
@@ -480,8 +514,42 @@ export default function WorkflowLayout() {
 
   return (
     <div className="workflow-layout">
-      {/* Sidebar */}
-      <div className="sidebar">
+      {/* Mobile Navigation Toggles */}
+      <button 
+        className="mobile-nav-toggle" 
+        onClick={toggleLeftSidebar}
+        style={{ left: '1rem' }}
+        aria-label="Toggle left sidebar"
+      >
+        <FaBars />
+      </button>
+      <button 
+        className="mobile-nav-toggle" 
+        onClick={toggleRightSidebar}
+        style={{ right: '1rem', left: 'auto' }}
+        aria-label="Toggle right sidebar"
+      >
+        <FaBars />
+      </button>
+
+      {/* Mobile Overlay */}
+      <div 
+        className={`mobile-overlay ${leftSidebarOpen || rightSidebarOpen ? 'active' : ''}`}
+        onClick={closeSidebars}
+      ></div>
+
+      {/* Left Sidebar */}
+      <div className={`sidebar ${leftSidebarOpen ? 'active' : ''}`}>
+        {/* Mobile close button for left sidebar */}
+        <button 
+          className="mobile-nav-toggle" 
+          onClick={closeSidebars}
+          style={{ position: 'absolute', top: '1rem', right: '1rem', display: leftSidebarOpen ? 'block' : 'none' }}
+          aria-label="Close sidebar"
+        >
+          <FaTimes />
+        </button>
+        
         <div className="sidebar-top">
           {showApiKeyPrompt ? (
             <div className="api-key-section card">
@@ -753,8 +821,18 @@ export default function WorkflowLayout() {
         </div>
       </div>
 
-      {/* Output Panel */}
-      <div className="output-panel">
+      {/* Right Sidebar - Output Panel */}
+      <div className={`sidebar output-panel ${rightSidebarOpen ? 'active' : ''}`}>
+        {/* Mobile close button for right sidebar */}
+        <button 
+          className="mobile-nav-toggle" 
+          onClick={closeSidebars}
+          style={{ position: 'absolute', top: '1rem', right: '1rem', display: rightSidebarOpen ? 'block' : 'none' }}
+          aria-label="Close sidebar"
+        >
+          <FaTimes />
+        </button>
+        
         {isLoading ? (
           <div className="loading-indicator">
             <span className="spinner">⏳</span>
