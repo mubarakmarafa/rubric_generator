@@ -37,14 +37,61 @@ const normalizeQuestionType = (type) => {
   const typeVariations = {
     'mcq': 'multiple_choice',
     'multiplechoice': 'multiple_choice',
+    'multi_choice': 'multiple_choice',
+    'choice': 'multiple_choice',
     'fillintheblanks': 'fill_in_the_blanks',
+    'fill_blank': 'fill_in_the_blanks',
+    'fill_blanks': 'fill_in_the_blanks',
+    'blanks': 'fill_in_the_blanks',
     'truefalse': 'true_false',
     'tf': 'true_false',
+    'true/false': 'true_false',
+    't/f': 'true_false',
     'shortanswer': 'short_answer',
-    'longanswer': 'long_answer'
+    'short': 'short_answer',
+    'longanswer': 'long_answer',
+    'long': 'long_answer',
+    'essay': 'long_answer',
+    'written': 'long_answer',
+    'sequence': 'ordering',
+    'order': 'ordering',
+    'arrange': 'ordering',
+    'match': 'matching',
+    'connect': 'matching',
+    'pair': 'matching'
   };
   
-  return typeVariations[normalized] || null;
+  // Check for partial matches in the type string
+  for (const [variation, validType] of Object.entries(typeVariations)) {
+    if (normalized.includes(variation)) {
+      return validType;
+    }
+  }
+  
+  // If no match found, try to infer from keywords
+  if (normalized.includes('choice') || normalized.includes('select') || normalized.includes('option')) {
+    return 'multiple_choice';
+  }
+  if (normalized.includes('blank') || normalized.includes('fill')) {
+    return 'fill_in_the_blanks';
+  }
+  if (normalized.includes('true') || normalized.includes('false')) {
+    return 'true_false';
+  }
+  if (normalized.includes('match') || normalized.includes('connect') || normalized.includes('pair')) {
+    return 'matching';
+  }
+  if (normalized.includes('order') || normalized.includes('sequence') || normalized.includes('arrange')) {
+    return 'ordering';
+  }
+  if (normalized.includes('short')) {
+    return 'short_answer';
+  }
+  if (normalized.includes('long') || normalized.includes('essay') || normalized.includes('paragraph')) {
+    return 'long_answer';
+  }
+  
+  return null;
 };
 
 export const validateQuestionType = (type) => {
@@ -129,6 +176,7 @@ Do not include any other text or explanations.`
     }
 
     const content = response.choices[0].message.content;
+    console.log('Raw OpenAI response:', content);
     
     // Parse the response
     const questionMatch = content.match(/QUESTION:\s*(.+)/);
@@ -136,20 +184,35 @@ Do not include any other text or explanations.`
     const typeMatch = content.match(/TYPE:\s*(.+)/);
     
     if (!questionMatch || !formatMatch || !typeMatch) {
-      throw new Error('Invalid response format from OpenAI API');
+      console.error('Invalid response format from OpenAI. Raw response:', content);
+      throw new Error('OpenAI could not parse the question in the expected format. The image might not contain a clear question or might be too complex to analyze.');
     }
     
     const question = questionMatch[1].trim();
     const format = formatMatch[1].trim();
     const detectedType = typeMatch[1].trim();
     
+    console.log('Parsed values:', { question, format, detectedType });
+    
     // Validate and normalize the question type
     const validatedType = validateQuestionType(detectedType);
+    
+    if (!validatedType) {
+      console.warn(`Could not validate question type: ${detectedType}`);
+      // Instead of returning null type, we'll still return the result but with a fallback
+      return {
+        question,
+        format,
+        type: null,
+        originalType: detectedType
+      };
+    }
     
     return {
       question,
       format,
-      type: validatedType
+      type: validatedType,
+      originalType: detectedType
     };
   } catch (error) {
     console.error('Error calling OpenAI API:', error);
