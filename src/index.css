@@ -30,6 +30,22 @@ body {
   min-height: 100vh;
 }
 
+/* Mobile improvements */
+@media (max-width: 768px) {
+  body {
+    place-items: flex-start;
+  }
+  
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Improve touch scrolling */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 h1 {
   font-size: 3.2em;
   line-height: 1.1;

@@ -1279,3 +1279,361 @@ body, html, #root {
     color: var(--text-color, #333);
   }
 } 
+
+/* Add mobile responsiveness media queries at the end of the file */
+
+/* Mobile Navigation Toggle */
+.mobile-nav-toggle {
+  display: none;
+  position: fixed;
+  top: 1rem;
+  z-index: 1000;
+  background: var(--accent-color, #60a5fa);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem;
+  cursor: pointer;
+  font-size: 1.2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: background 0.2s ease;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Close button inside sidebars */
+.sidebar .mobile-nav-toggle {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1001;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.sidebar .mobile-nav-toggle:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.mobile-nav-toggle:hover {
+  background: var(--accent-color-hover, #3b82f6);
+}
+
+/* Mobile overlay for sidebar */
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 998;
+}
+
+.mobile-overlay.active {
+  display: block;
+}
+
+/* Tablet styles (768px to 1024px) */
+@media (max-width: 1024px) {
+  .workflow-layout {
+    grid-template-columns: 250px 1fr 250px;
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+  
+  .sidebar {
+    padding: 0.75rem;
+  }
+  
+  .api-key-section {
+    padding: 1rem;
+  }
+  
+  .api-key-section h2 {
+    font-size: 1.5rem;
+  }
+}
+
+/* Small tablet styles (768px and below) */
+@media (max-width: 768px) {
+  .workflow-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+    height: 100vh;
+    gap: 0;
+    padding: 0;
+  }
+  
+  .mobile-nav-toggle {
+    display: block;
+  }
+  
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    width: 280px;
+    height: 100vh;
+    z-index: 999;
+    transition: left 0.3s ease-in-out;
+    overflow-y: auto;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .sidebar.active {
+    left: 0;
+  }
+
+  /* Add top padding to sidebar content on mobile when close button is present */
+  .sidebar.active .sidebar-top {
+    padding-top: 3rem;
+  }
+  
+  .sidebar:last-child {
+    left: auto;
+    right: -100%;
+    transition: right 0.3s ease-in-out;
+  }
+  
+  .sidebar:last-child.active {
+    right: 0;
+  }
+  
+  .main-panel {
+    order: 1;
+    margin-top: 60px;
+    height: calc(100vh - 60px);
+  }
+  
+  .main-panel-header {
+    padding: 1rem;
+  }
+  
+  .workflow-steps-scroll {
+    padding: 0 1rem 1rem 1rem;
+  }
+  
+  .workflow-step.step-card {
+    min-height: 120px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Output panel mobile styles */
+  .output-panel {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 280px;
+    height: 100vh;
+    z-index: 999;
+    transition: right 0.3s ease-in-out;
+    overflow-y: auto;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 0;
+    flex: none;
+  }
+
+  .output-panel.active {
+    right: 0;
+  }
+
+  /* Add top padding to output panel content on mobile when close button is present */
+  .output-panel.active {
+    padding-top: 4rem;
+  }
+}
+
+/* Mobile phone styles (480px and below) */
+@media (max-width: 480px) {
+  .mobile-nav-toggle {
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.5rem;
+    font-size: 1rem;
+  }
+  
+  .sidebar {
+    width: 100vw;
+    padding: 1rem;
+  }
+
+  /* Full width output panel on small screens */
+  .output-panel {
+    width: 100vw;
+  }
+  
+  .main-panel {
+    margin-top: 50px;
+    height: calc(100vh - 50px);
+  }
+  
+  .main-panel-header {
+    padding: 0.75rem;
+  }
+  
+  .workflow-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .editor-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .workflow-steps-scroll {
+    padding: 0 0.75rem 0.75rem 0.75rem;
+  }
+  
+  .workflow-step.step-card {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    min-height: 100px;
+  }
+  
+  .step-card-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .api-key-section {
+    padding: 0.75rem;
+  }
+  
+  .api-key-section h2 {
+    font-size: 1.25rem;
+  }
+  
+  .api-key-input, .set-api-key-btn {
+    padding: 0.75rem;
+    font-size: 1rem;
+  }
+  
+  /* Make form elements more touch-friendly */
+  button, input, textarea, select {
+    min-height: 44px;
+    font-size: 16px; /* Prevents iOS zoom on input focus */
+    line-height: 1.4;
+  }
+
+  /* Improve workflow step cards for mobile */
+  .workflow-step.step-card .step-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .workflow-step.step-card .step-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  /* Better mobile form layout */
+  .step-conditions-form {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .step-conditions-form .cond-input {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  
+  .run-workflow-btn {
+    padding: 1rem;
+    font-size: 1rem;
+  }
+  
+  /* Improve image upload area for mobile */
+  .image-upload-dropzone {
+    padding: 1rem;
+    min-height: 120px;
+  }
+  
+  /* Better spacing for detected questions */
+  .detected-question-box {
+    margin: 0.75rem 0;
+    padding: 0.75rem;
+  }
+  
+  .question-details {
+    gap: 0.5rem;
+  }
+  
+  .question-text {
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+  
+  .type-badge {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* Prevent horizontal scroll on mobile */
+@media (max-width: 768px) {
+  body, html {
+    overflow-x: hidden;
+  }
+  
+  .workflow-layout {
+    overflow-x: hidden;
+  }
+  
+  /* Ensure no elements exceed viewport width */
+  * {
+    max-width: 100vw;
+    box-sizing: border-box;
+  }
+}
+
+/* Very small mobile screens (360px and below) */
+@media (max-width: 360px) {
+  .main-panel-header {
+    padding: 0.5rem;
+  }
+  
+  .workflow-steps-scroll {
+    padding: 0 0.5rem 0.5rem 0.5rem;
+  }
+  
+  .workflow-step.step-card {
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .api-key-section {
+    padding: 0.5rem;
+  }
+  
+  .api-key-section h2 {
+    font-size: 1.1rem;
+  }
+  
+  .mobile-nav-toggle {
+    padding: 0.4rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Landscape orientation adjustments for mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .main-panel {
+    margin-top: 45px;
+    height: calc(100vh - 45px);
+  }
+  
+  .mobile-nav-toggle {
+    top: 0.25rem;
+    padding: 0.4rem;
+  }
+  
+  .sidebar {
+    width: 250px;
+  }
+} 
