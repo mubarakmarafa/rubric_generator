@@ -324,14 +324,23 @@ export default function WorkflowLayout() {
         if (result) {
           console.log('Question detection result:', result);
           
-          // Normalize the question type by replacing spaces with underscores
-          const normalizedType = result.type.toLowerCase().replace(/\s+/g, '_');
-          
-          setDetectedQuestion({
-            text: result.question,
-            type: normalizedType,
-            format: result.format
-          });
+          // Check if type is valid before normalizing
+          if (result.type) {
+            // Normalize the question type by replacing spaces with underscores
+            const normalizedType = result.type.toLowerCase().replace(/\s+/g, '_');
+            
+            setDetectedQuestion({
+              text: result.question,
+              type: normalizedType,
+              format: result.format
+            });
+          } else {
+            console.warn('Question type could not be determined from the image');
+            alert('Unable to detect the question type from the image. Please try with a clearer image or enter the question manually.');
+          }
+        } else {
+          console.warn('No result returned from question detection');
+          alert('Unable to detect question from the image. Please try with a clearer image or check your OpenAI API key.');
         }
       } catch (error) {
         console.error('Error detecting question:', error);
