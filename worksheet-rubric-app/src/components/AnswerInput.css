@@ -1,0 +1,21 @@
+.answer-input.card {
+  width: 100%;
+  min-height: 120px;
+  padding: 1rem;
+  background: var(--input-background);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--text-color);
+  resize: vertical;
+}
+
+.answer-input::placeholder {
+  color: var(--text-muted);
+}
+
+.answer-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+} 

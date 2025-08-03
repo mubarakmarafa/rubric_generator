@@ -1,0 +1,98 @@
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  
+  /* Light mode variables (default) */
+  --background-color: #ffffff;
+  --surface-color: #f8f9fa;
+  --surface-color-darker: #e9ecef;
+  --text-color: #212529;
+  --text-muted: #6c757d;
+  --text-bright: #000000;
+  --border-color: #dee2e6;
+  --accent-color: #1976d2;
+  --accent-color-hover: #1565c0;
+  --hover-background: #e9ecef;
+  --input-background: #ffffff;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  
+  /* Use CSS variables for colors */
+  color: var(--text-color);
+  background-color: var(--background-color);
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: var(--surface-color);
+  color: var(--text-color);
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: var(--accent-color);
+  background-color: var(--hover-background);
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+/* Dark mode variables */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-color: #121212;
+    --surface-color: #2d2d2d;
+    --surface-color-darker: #262626;
+    --text-color: #e0e0e0;
+    --text-muted: #a0a0a0;
+    --text-bright: #ffffff;
+    --border-color: #404040;
+    --accent-color: #60a5fa;
+    --accent-color-hover: #3b82f6;
+    --hover-background: #404040;
+    --input-background: #333333;
+  }
+  
+  a:hover {
+    color: #535bf2;
+  }
+  
+  button {
+    background-color: var(--surface-color);
+    color: var(--text-color);
+  }
+}
