@@ -7,7 +7,7 @@ export const getOpenAIClient = () => {
     throw new Error('OpenAI API key is required. Please set your API key first.');
   }
   
-  // Validate API key format (should start with 'sk-' and be at least 32 characters)
+  // Validate API key format
   if (!apiKey.startsWith('sk-') || apiKey.length < 32) {
     throw new Error('Invalid OpenAI API key format. Please check your API key and try again.');
   }
@@ -28,11 +28,14 @@ const VALID_QUESTION_TYPES = [
   'long_answer'
 ];
 
-const normalizeQuestionType = (type) => {
+export const normalizeQuestionType = (type) => {
   if (!type) return null;
   
-  // Convert to lowercase and replace spaces with underscores
-  const normalized = type.toLowerCase().replace(/\s+/g, '_');
+  // Convert to lowercase and remove special characters
+  const normalized = type.toLowerCase()
+    .replace(/[\/\\-]/g, '_')  // Replace slashes and hyphens with underscores
+    .replace(/\s+/g, '_')      // Replace spaces with underscores
+    .replace(/[^a-z0-9_]/g, ''); // Remove any other special characters
   
   // Check if the normalized type is valid
   if (VALID_QUESTION_TYPES.includes(normalized)) {
@@ -44,10 +47,16 @@ const normalizeQuestionType = (type) => {
     'mcq': 'multiple_choice',
     'multiplechoice': 'multiple_choice',
     'fillintheblanks': 'fill_in_the_blanks',
+    'fillinblank': 'fill_in_the_blanks',
+    'fillintheblank': 'fill_in_the_blanks',
     'truefalse': 'true_false',
     'tf': 'true_false',
+    'true_or_false': 'true_false',
     'shortanswer': 'short_answer',
-    'longanswer': 'long_answer'
+    'short': 'short_answer',
+    'longanswer': 'long_answer',
+    'long': 'long_answer',
+    'essay': 'long_answer'
   };
   
   return typeVariations[normalized] || null;
@@ -64,64 +73,99 @@ export const validateQuestionType = (type) => {
 
 export const generateRubric = async (input, prompt) => {
   const openai = getOpenAIClient();
-  
+
   try {
     // Check if input is a base64 image URL
     const isImageInput = typeof input === 'string' && input.startsWith('data:image/');
     
-    const messages = [
-      {
-        role: "system",
-        content: "You are a helpful assistant that analyzes educational questions and generates rubrics. For image inputs, first describe the question you see, then determine its type (multiple_choice, fill_in_the_blanks, true_false, matching, ordering, short_answer, or long_answer), and finally provide the requested analysis."
-      }
-    ];
-
     if (isImageInput) {
-      // For image input, use GPT-4 Vision
-      messages.push({
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: prompt || "Extract the question from this image and determine its type."
-          },
-          {
-            type: "image_url",
-            image_url: {
-              url: input,
-              detail: "high"
+      const messages = [
+        {
+          role: "system",
+          content: "You are a direct and precise assistant that analyzes educational questions from images. Extract ONLY the question text and determine its type. Format your response EXACTLY as:\nQuestion: [extracted question]\nType: [question type]\nFormat: [any specific format instructions]"
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: prompt || "Extract the question from this image and determine its type."
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: input,
+                detail: "high"
+              }
             }
-          }
-        ]
-      });
+          ]
+        }
+      ];
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4-vision-preview",
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4.1",  // Using latest model with vision capabilities
         messages: messages,
-        max_tokens: 500
+        max_tokens: 1000,
       });
 
-      return response.choices[0].message.content;
+      return completion.choices[0].message.content;
     } else {
-      // For text input, use GPT-3.5 Turbo
-      messages.push({
-        role: "user",
-        content: prompt || input
-      });
+      // For text input, use the regular rubric generation
+      const messages = [
+        {
+          role: "system",
+          content: "You are a direct and concise rubric generator. Provide ONLY the rubric content without any explanations, introductions, or additional text. Format the rubric exactly as requested without any extra commentary. Do not include phrases like 'Here's the rubric' or 'I hope this helps'. Just output the rubric content directly."
+        },
+        {
+          role: "user",
+          content: typeof input === 'object' && input !== null
+            ? `Generate a detailed rubric for grading the following question: ${input.text}
+Question type: ${input.type}
+Please include specific criteria and point values.`
+            : prompt // If input is null or not an object, use the prompt directly
+        }
+      ];
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4.1-mini",  // Using faster model for text-only tasks
         messages: messages,
         temperature: 0.7,
-        max_tokens: 500
+        max_tokens: 2000,
       });
 
-      return response.choices[0].message.content;
+      return completion.choices[0].message.content;
     }
   } catch (error) {
-    console.error('Error generating rubric:', error);
+    console.error('Error in generateRubric:', error);
+    throw error;
+  }
+};
+
+export const generateRubricWithText = async (textPrompt) => {
+  try {
+    const openai = getOpenAIClient();
+    const response = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: textPrompt }
+          ]
+        }
+      ],
+      max_tokens: 1000
+    });
+
+    if (!response.choices || !response.choices[0] || !response.choices[0].message) {
+      throw new Error('Invalid response from OpenAI API');
+    }
+
+    return response.choices[0].message.content;
+  } catch (error) {
+    console.error('Error calling OpenAI API:', error);
     if (error.message.includes('API key not found')) {
-      throw new Error('OpenAI API key is required. Please add your API key in the settings.');
+      throw error; // Re-throw API key errors
     }
     if (error.code === 'invalid_api_key') {
       throw new Error('Invalid API key. Please check your OpenAI API key configuration.');
@@ -134,6 +178,31 @@ export const generateRubric = async (input, prompt) => {
   }
 };
 
-export const generateRubricWithText = async (textPrompt) => {
-  return generateRubric(textPrompt, null);
-}; 
+export const executeWorkflowStep = async (step, context) => {
+  const openai = getOpenAIClient();
+
+  try {
+    const messages = [
+      {
+        role: "system",
+        content: "You are a direct and precise assistant. Provide ONLY the requested output without any explanations, introductions, or additional commentary. Do not include phrases like 'Here's the result' or 'I hope this helps'. Output exactly what is asked for and nothing more."
+      },
+      {
+        role: "user",
+        content: `Context: ${JSON.stringify(context)}\n\n${step.prompt}`
+      }
+    ];
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      messages: messages,
+      temperature: 0.7,
+      max_tokens: 2000,
+    });
+
+    return completion.choices[0].message.content;
+  } catch (error) {
+    console.error('Error in executeWorkflowStep:', error);
+    throw error;
+  }
+} 
