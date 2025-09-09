@@ -25,6 +25,7 @@ const DEFAULT_PROMPTS = [
 
 export default function StudentWorkspace({ rubric, question, questionType, format, isActive, onBack }) {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('openai_api_key') || '');
+  const [baseUrl, setBaseUrl] = useState(() => localStorage.getItem('openai_base_url') || '');
   const [showDropdown, setShowDropdown] = useState(false);
   const [prompts, setPrompts] = useState(() => {
     const saved = localStorage.getItem('aiTutorPrompts');
@@ -88,12 +89,20 @@ export default function StudentWorkspace({ rubric, question, questionType, forma
   const handleApiKeyRemove = () => {
     setApiKey('');
     localStorage.removeItem('openai_api_key');
+    setBaseUrl('');
+    localStorage.removeItem('openai_base_url');
   };
 
   const handleApiKeyChange = (e) => {
     const newKey = e.target.value;
     setApiKey(newKey);
     localStorage.setItem('openai_api_key', newKey);
+  };
+
+  const handleBaseUrlChange = (e) => {
+    const url = e.target.value;
+    setBaseUrl(url);
+    if (url) localStorage.setItem('openai_base_url', url); else localStorage.removeItem('openai_base_url');
   };
 
   const handlePromptSelect = (prompt) => {
@@ -235,13 +244,21 @@ export default function StudentWorkspace({ rubric, question, questionType, forma
               </button>
             ) : (
               <div>
-                <h3>API Key</h3>
+                <h3>API Settings</h3>
                 <input
                   type="password"
                   value={apiKey}
                   onChange={handleApiKeyChange}
-                  placeholder="Enter your API key"
+                  placeholder="Enter your API key (OpenAI-compatible)"
                   className="api-key-input"
+                />
+                <input
+                  type="text"
+                  value={baseUrl}
+                  onChange={handleBaseUrlChange}
+                  placeholder="Optional: Custom Base URL (e.g., https://your-litellm-host/v1)"
+                  className="api-key-input"
+                  style={{ marginTop: '0.5rem' }}
                 />
               </div>
             )}

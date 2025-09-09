@@ -76,6 +76,9 @@ export default function WorkflowLayout() {
   const [apiKey, setApiKey] = useState(() => {
     return localStorage.getItem('openai_api_key') || '';
   });
+  const [baseUrl, setBaseUrl] = useState(() => {
+    return localStorage.getItem('openai_base_url') || '';
+  });
   const [isKeySet, setIsKeySet] = useState(!!localStorage.getItem('openai_api_key'));
   const [showApiKeyPrompt, setShowApiKeyPrompt] = useState(!localStorage.getItem('openai_api_key'));
 
@@ -127,6 +130,15 @@ export default function WorkflowLayout() {
     }
   }, [apiKey]);
 
+  // Save base URL to localStorage when it changes
+  useEffect(() => {
+    if (baseUrl) {
+      localStorage.setItem('openai_base_url', baseUrl);
+    } else {
+      localStorage.removeItem('openai_base_url');
+    }
+  }, [baseUrl]);
+
   // Load workflows from local storage on component mount
   useEffect(() => {
     const savedWorkflows = localStorage.getItem('workflows');
@@ -162,6 +174,10 @@ export default function WorkflowLayout() {
 
   const handleApiKeyChange = (e) => {
     setApiKey(e.target.value);
+  };
+
+  const handleBaseUrlChange = (e) => {
+    setBaseUrl(e.target.value);
   };
 
   const handleSetApiKey = () => {
@@ -549,14 +565,23 @@ export default function WorkflowLayout() {
               <div className="api-key-section card">
                 {showApiKeyPrompt ? (
                   <div>
-                    <h3>Enter OpenAI API Key</h3>
+                    <h3>Enter OpenAI-compatible API Key</h3>
                     <form onSubmit={handleApiKeySubmit}>
                       <input
                         type="password"
                         name="apiKey"
-                        placeholder="Enter your OpenAI API key"
+                        placeholder="Enter your API key"
                         required
                         className="api-key-input"
+                      />
+                      <input
+                        type="text"
+                        name="baseUrl"
+                        placeholder="Optional: Custom Base URL (e.g., https://your-litellm-host/v1)"
+                        value={baseUrl}
+                        onChange={handleBaseUrlChange}
+                        className="api-key-input"
+                        style={{ marginTop: '0.5rem' }}
                       />
                       <button type="submit" className="set-api-key-btn">
                         Save API Key
