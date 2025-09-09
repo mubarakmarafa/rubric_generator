@@ -6,14 +6,13 @@ export const getOpenAIClient = () => {
   if (!apiKey) {
     throw new Error('OpenAI API key is required. Please set your API key first.');
   }
-  
-  // Validate API key format
-  if (!apiKey.startsWith('sk-') || apiKey.length < 32) {
-    throw new Error('Invalid OpenAI API key format. Please check your API key and try again.');
-  }
-  
+
+  // Optional: allow custom/proxy-compatible base URL (e.g., LiteLLM/OpenAI-compatible gateways)
+  const baseURL = localStorage.getItem('openai_base_url') || undefined;
+
   return new OpenAI({
     apiKey: apiKey,
+    baseURL,
     dangerouslyAllowBrowser: true // Note: In production, API calls should be made through a backend
   });
 };
