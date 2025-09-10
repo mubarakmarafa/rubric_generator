@@ -73,14 +73,8 @@ const DEFAULT_WORKFLOWS = [
 ];
 
 export default function WorkflowLayout() {
-  const [apiKey, setApiKey] = useState(() => {
-    return localStorage.getItem('openai_api_key') || '';
-  });
-  const [baseUrl, setBaseUrl] = useState(() => {
-    return localStorage.getItem('openai_base_url') || '';
-  });
-  const [isKeySet, setIsKeySet] = useState(!!localStorage.getItem('openai_api_key'));
-  const [showApiKeyPrompt, setShowApiKeyPrompt] = useState(!localStorage.getItem('openai_api_key'));
+  // API key UI removed; backend proxy handles secrets
+  const [isKeySet] = useState(true);
 
   const [image, setImage] = useState(null);
   const [rubric, setRubric] = useState(null);
@@ -117,27 +111,7 @@ export default function WorkflowLayout() {
     setStepPromptInputs(selectedWorkflow.steps.map(step => step.prompt));
   }, [selectedWorkflow]);
 
-  // Save API key to localStorage when it changes
-  useEffect(() => {
-    if (apiKey) {
-      localStorage.setItem('openai_api_key', apiKey);
-      setShowApiKeyPrompt(false);
-      setIsKeySet(true);
-    } else {
-      localStorage.removeItem('openai_api_key');
-      setShowApiKeyPrompt(true);
-      setIsKeySet(false);
-    }
-  }, [apiKey]);
-
-  // Save base URL to localStorage when it changes
-  useEffect(() => {
-    if (baseUrl) {
-      localStorage.setItem('openai_base_url', baseUrl);
-    } else {
-      localStorage.removeItem('openai_base_url');
-    }
-  }, [baseUrl]);
+  // Remove previous key/baseURL persistence effects
 
   // Load workflows from local storage on component mount
   useEffect(() => {
@@ -172,20 +146,7 @@ export default function WorkflowLayout() {
     }
   }, [detectedQuestion]);
 
-  const handleApiKeyChange = (e) => {
-    setApiKey(e.target.value);
-  };
-
-  const handleBaseUrlChange = (e) => {
-    setBaseUrl(e.target.value);
-  };
-
-  const handleSetApiKey = () => {
-    if (apiKey.trim()) {
-      localStorage.setItem('openaiApiKey', apiKey);
-      setIsKeySet(true);
-    }
-  };
+  // API key UI removed; backend proxy handles secrets
 
   const handleWorkflowSelect = (workflow) => {
     setSelectedWorkflow(workflow);
@@ -535,19 +496,7 @@ export default function WorkflowLayout() {
     }
   };
 
-  const handleApiKeySubmit = (event) => {
-    event.preventDefault();
-    const key = event.target.apiKey.value.trim();
-    if (key) {
-      setApiKey(key);
-    }
-  };
-
-  const handleApiKeyRemove = () => {
-    setApiKey('');
-    localStorage.removeItem('openai_api_key');
-    setShowApiKeyPrompt(true);
-  };
+  
 
   const handleDeleteStep = (idx) => {
     const updatedSteps = selectedWorkflow.steps.filter((_, i) => i !== idx);

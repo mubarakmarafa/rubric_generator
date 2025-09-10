@@ -1,20 +1,16 @@
-import OpenAI from 'openai';
-
-// Initialize the OpenAI client with the API key from localStorage
-export const getOpenAIClient = () => {
-  const apiKey = localStorage.getItem('openai_api_key');
-  if (!apiKey) {
-    throw new Error('OpenAI API key is required. Please set your API key first.');
-  }
-
-  // Optional: allow custom/proxy-compatible base URL (e.g., LiteLLM/OpenAI-compatible gateways)
-  const baseURL = localStorage.getItem('openai_base_url') || undefined;
-
-  return new OpenAI({
-    apiKey: apiKey,
-    baseURL,
-    dangerouslyAllowBrowser: true // Note: In production, API calls should be made through a backend
+// All AI calls are proxied through the serverless endpoint to avoid exposing secrets
+const postChat = async ({ messages, model = 'gpt-4.1-mini', temperature = 0.7, max_tokens = 2000 }) => {
+  const resp = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages, model, temperature, max_tokens })
   });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error || `Request failed with ${resp.status}`);
+  }
+  const data = await resp.json();
+  return data;
 };
 
 const VALID_QUESTION_TYPES = [
@@ -71,7 +67,6 @@ export const validateQuestionType = (type) => {
 };
 
 export const generateRubric = async (input, prompt) => {
-  const openai = getOpenAIClient();
 
   try {
     // Check if input is a base64 image URL
@@ -101,13 +96,12 @@ export const generateRubric = async (input, prompt) => {
         }
       ];
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4.1",  // Using latest model with vision capabilities
-        messages: messages,
-        max_tokens: 1000,
+      const { content } = await postChat({
+        model: "gpt-4.1",
+        messages,
+        max_tokens: 1000
       });
-
-      return completion.choices[0].message.content;
+      return content;
     } else {
       // For text input, use the regular rubric generation
       const messages = [
@@ -125,14 +119,13 @@ Please include specific criteria and point values.`
         }
       ];
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4.1-mini",  // Using faster model for text-only tasks
-        messages: messages,
+      const { content } = await postChat({
+        model: "gpt-4.1-mini",
+        messages,
         temperature: 0.7,
-        max_tokens: 2000,
+        max_tokens: 2000
       });
-
-      return completion.choices[0].message.content;
+      return content;
     }
   } catch (error) {
     console.error('Error in generateRubric:', error);
@@ -142,8 +135,7 @@ Please include specific criteria and point values.`
 
 export const generateRubricWithText = async (textPrompt) => {
   try {
-    const openai = getOpenAIClient();
-    const response = await openai.chat.completions.create({
+    const { content } = await postChat({
       model: "gpt-4.1-mini",
       messages: [
         {
@@ -155,12 +147,7 @@ export const generateRubricWithText = async (textPrompt) => {
       ],
       max_tokens: 1000
     });
-
-    if (!response.choices || !response.choices[0] || !response.choices[0].message) {
-      throw new Error('Invalid response from OpenAI API');
-    }
-
-    return response.choices[0].message.content;
+    return content;
   } catch (error) {
     console.error('Error calling OpenAI API:', error);
     if (error.message.includes('API key not found')) {
@@ -178,8 +165,6 @@ export const generateRubricWithText = async (textPrompt) => {
 };
 
 export const executeWorkflowStep = async (step, context) => {
-  const openai = getOpenAIClient();
-
   try {
     const messages = [
       {
@@ -192,14 +177,13 @@ export const executeWorkflowStep = async (step, context) => {
       }
     ];
 
-    const completion = await openai.chat.completions.create({
+    const { content } = await postChat({
       model: "gpt-4.1-mini",
-      messages: messages,
+      messages,
       temperature: 0.7,
-      max_tokens: 2000,
+      max_tokens: 2000
     });
-
-    return completion.choices[0].message.content;
+    return content;
   } catch (error) {
     console.error('Error in executeWorkflowStep:', error);
     throw error;

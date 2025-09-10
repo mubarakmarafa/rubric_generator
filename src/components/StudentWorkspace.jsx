@@ -24,8 +24,6 @@ const DEFAULT_PROMPTS = [
 ];
 
 export default function StudentWorkspace({ rubric, question, questionType, format, isActive, onBack }) {
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('openai_api_key') || '');
-  const [baseUrl, setBaseUrl] = useState(() => localStorage.getItem('openai_base_url') || '');
   const [showDropdown, setShowDropdown] = useState(false);
   const [prompts, setPrompts] = useState(() => {
     const saved = localStorage.getItem('aiTutorPrompts');
@@ -86,24 +84,7 @@ export default function StudentWorkspace({ rubric, question, questionType, forma
 
   if (!isActive) return null;
 
-  const handleApiKeyRemove = () => {
-    setApiKey('');
-    localStorage.removeItem('openai_api_key');
-    setBaseUrl('');
-    localStorage.removeItem('openai_base_url');
-  };
-
-  const handleApiKeyChange = (e) => {
-    const newKey = e.target.value;
-    setApiKey(newKey);
-    localStorage.setItem('openai_api_key', newKey);
-  };
-
-  const handleBaseUrlChange = (e) => {
-    const url = e.target.value;
-    setBaseUrl(url);
-    if (url) localStorage.setItem('openai_base_url', url); else localStorage.removeItem('openai_base_url');
-  };
+  // API key UI removed; backend proxy handles secrets
 
   const handlePromptSelect = (prompt) => {
     setSelectedPrompt(prompt);
@@ -126,7 +107,7 @@ export default function StudentWorkspace({ rubric, question, questionType, forma
   };
 
   const handleTitleClick = () => {
-    if (apiKey) setEditingTitle(true);
+    setEditingTitle(true);
   };
 
   const handleTitleChange = (e) => {
@@ -173,7 +154,7 @@ export default function StudentWorkspace({ rubric, question, questionType, forma
   };
 
   const handleSendMessage = async () => {
-    if (!currentMessage.trim() || chatLoading || !apiKey) return;
+    if (!currentMessage.trim() || chatLoading) return;
 
     const userMessage = {
       role: 'student',
@@ -236,33 +217,6 @@ export default function StudentWorkspace({ rubric, question, questionType, forma
       {/* Student Workspace Sidebar */}
       <div className="sidebar">
         <div className="sidebar-top">
-          {/* API Key Section */}
-          <div className="api-key-section card">
-            {apiKey ? (
-              <button onClick={handleApiKeyRemove} className="remove-api-key-btn">
-                Remove API Key
-              </button>
-            ) : (
-              <div>
-                <h3>API Settings</h3>
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={handleApiKeyChange}
-                  placeholder="Enter your API key (OpenAI-compatible)"
-                  className="api-key-input"
-                />
-                <input
-                  type="text"
-                  value={baseUrl}
-                  onChange={handleBaseUrlChange}
-                  placeholder="Optional: Custom Base URL (e.g., https://your-litellm-host/v1)"
-                  className="api-key-input"
-                  style={{ marginTop: '0.5rem' }}
-                />
-              </div>
-            )}
-          </div>
 
           {/* Question and Metadata Section */}
           <div className="question-section card">
@@ -524,7 +478,7 @@ export default function StudentWorkspace({ rubric, question, questionType, forma
                     onKeyDown={handleChatKeyDown}
                     placeholder="Type your message as a student..."
                     rows={2}
-                    disabled={chatLoading || !apiKey}
+                    disabled={chatLoading}
                   />
                   <button 
                     onClick={() => setShowSettingsModal(true)}
@@ -536,18 +490,14 @@ export default function StudentWorkspace({ rubric, question, questionType, forma
                   </button>
                   <button 
                     onClick={handleSendMessage}
-                    disabled={!currentMessage.trim() || chatLoading || !apiKey}
+                    disabled={!currentMessage.trim() || chatLoading}
                     className="send-btn"
                   >
                     Send
                   </button>
                 </div>
                 
-                {!apiKey && (
-                  <div className="chat-warning">
-                    ⚠️ Please set your OpenAI API key in the left panel to use the chat feature.
-                  </div>
-                )}
+                
               </div>
             </div>
           )}

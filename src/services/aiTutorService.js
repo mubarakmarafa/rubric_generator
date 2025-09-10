@@ -1,4 +1,16 @@
-import { getOpenAIClient } from './openaiService';
+// Use the shared proxy to call the serverless endpoint
+const postChat = async ({ messages, model = 'gpt-4.1-mini', temperature = 0.7, max_tokens = 1000 }) => {
+  const resp = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages, model, temperature, max_tokens })
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error || `Request failed with ${resp.status}`);
+  }
+  return resp.json();
+};
 
 // Structure for storing attempt history
 export const createAttempt = (answer, feedback, promptId) => ({
@@ -21,12 +33,6 @@ export const generateTutorFeedback = async (
   questionFormat = null,
   aiSettings = null
 ) => {
-  const apiKey = localStorage.getItem('openai_api_key');
-  if (!apiKey) {
-    throw new Error('OpenAI API key is required');
-  }
-
-  const openai = getOpenAIClient(apiKey);
   
   // Build conversation history context
   const historyContext = attemptHistory.length > 0
@@ -73,8 +79,8 @@ Remember: Provide educational feedback that helps the student learn while follow
   console.log('Full system prompt:', systemPrompt);
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4-1106-preview",
+    const { content } = await postChat({
+      model: "gpt-4.1-mini",
       messages: [
         {
           role: "system",
@@ -89,7 +95,7 @@ Remember: Provide educational feedback that helps the student learn while follow
       max_tokens: 500
     });
 
-    return response.choices[0].message.content;
+    return content;
   } catch (error) {
     console.error('Error generating tutor feedback:', error);
     throw error;
