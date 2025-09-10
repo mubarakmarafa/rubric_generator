@@ -281,11 +281,6 @@ export default function WorkflowLayout() {
   const handleImageUpload = async (file) => {
     console.log('Image uploaded:', file);
     
-    if (!isKeySet) {
-      alert('Please set your OpenAI API key first');
-      return;
-    }
-    
     if (file) {
       try {
         // Convert the file to base64 data URL
@@ -314,11 +309,6 @@ export default function WorkflowLayout() {
   const handleDetectQuestion = async () => {
     if (!image) {
       alert('Please upload an image first');
-      return;
-    }
-
-    if (!isKeySet) {
-      alert('Please set your OpenAI API key first');
       return;
     }
 
@@ -451,11 +441,6 @@ export default function WorkflowLayout() {
       return;
     }
 
-    if (!isKeySet) {
-      alert('Please set your OpenAI API key first');
-      return;
-    }
-
     setIsLoading(true);
     setExecutionProgress(null);
 
@@ -511,44 +496,11 @@ export default function WorkflowLayout() {
         <div className="workflow-layout">
           <div className="sidebar">
             <div className="sidebar-top">
-              <div className="api-key-section card">
-                {showApiKeyPrompt ? (
-                  <div>
-                    <h3>Enter OpenAI-compatible API Key</h3>
-                    <form onSubmit={handleApiKeySubmit}>
-                      <input
-                        type="password"
-                        name="apiKey"
-                        placeholder="Enter your API key"
-                        required
-                        className="api-key-input"
-                      />
-                      <input
-                        type="text"
-                        name="baseUrl"
-                        placeholder="Optional: Custom Base URL (e.g., https://your-litellm-host/v1)"
-                        value={baseUrl}
-                        onChange={handleBaseUrlChange}
-                        className="api-key-input"
-                        style={{ marginTop: '0.5rem' }}
-                      />
-                      <button type="submit" className="set-api-key-btn">
-                        Save API Key
-                      </button>
-                    </form>
-                  </div>
-                ) : (
-                  <button onClick={handleApiKeyRemove} className="remove-api-key-btn">
-                    Remove API Key
-                  </button>
-                )}
-              </div>
-
-              <div className={`image-upload-dropzone card ${!isKeySet ? 'disabled' : ''}`}>
+              <div className={`image-upload-dropzone card`}>
                 <ImageUpload onImageUpload={handleImageUpload} />
               </div>
               
-              <div className={`${!isKeySet ? 'disabled' : ''}`}>
+              <div>
                 {!detectedQuestion ? (
                   <div className="detected-question-box">
                     <h3>Detected Question</h3>
@@ -598,9 +550,8 @@ export default function WorkflowLayout() {
               </div>
 
               <button 
-                className={`run-workflow-btn ${!isKeySet ? 'disabled' : ''}`}
+                className={`run-workflow-btn`}
                 onClick={handleWorkflowExecute}
-                disabled={!isKeySet}
               >
                 Run Workflow
               </button>
